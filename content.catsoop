@@ -304,7 +304,7 @@ csq_initial="""def lcs(A, B):
     # If the last characters of both strings match
     if A[-1] == B[-1]:
         # The matched character is part of the LCS. Add 1 and recurse.
-        return 1 + lcs(A[:-1], B[:-1])
+        return ____________
 
     # If the last characters do not match
     else:
@@ -835,28 +835,23 @@ csq_soln = r"""def count_unival_subtrees(node):
 csq_tests = [
     {'code': 'class N:\n    def __init__(self,v,l=None,r=None): self.val=v; self.left=l; self.right=r\n'
              't = N(5, N(1), N(5, N(5), N(5)))\n'
-             'res = count_unival_subtrees(t)\n'
-             'ans = res[0] if isinstance(res, tuple) else res'},
-    {'code': 'res = count_unival_subtrees(None)\n'
-             'ans = res[0] if isinstance(res, tuple) else res'},
+             'ans = count_unival_subtrees(t)'},
+    {'code': 'ans = count_unival_subtrees(None)'},
     {'code': 'class N:\n    def __init__(self,v,l=None,r=None): self.val=v; self.left=l; self.right=r\n'
-             'res = count_unival_subtrees(N(42))\n'
-             'ans = res[0] if isinstance(res, tuple) else res'},
+             'ans = count_unival_subtrees(N(42))'},
     {'code': 'class N:\n    def __init__(self,v,l=None,r=None): self.val=v; self.left=l; self.right=r\n'
              't = N(5, N(5, N(5), N(5)), N(5, N(5), N(5)))\n'
-             'res = count_unival_subtrees(t)\n'
-             'ans = res[0] if isinstance(res, tuple) else res'},
+             'ans = count_unival_subtrees(t)'},
     {'code': 'class N:\n    def __init__(self,v,l=None,r=None): self.val=v; self.left=l; self.right=r\n'
              't = N(1, N(1, N(1), N(1)), N(1, N(0), N(1)))\n'
-             'res = count_unival_subtrees(t)\n'
-             'ans = res[0] if isinstance(res, tuple) else res'},
+             'ans = count_unival_subtrees(t)'},
     {'code': 'class N:\n    def __init__(self,v,l=None,r=None): self.val=v; self.left=l; self.right=r\n'
              't = N(7, N(7, N(7, N(7))))\n'
-             'res = count_unival_subtrees(t)\n'
-             'ans = res[0] if isinstance(res, tuple) else res'},
+             'ans = count_unival_subtrees(t)'},
 ]
 
-csq_explanation = """**Shrink & Combine (single function)**
+
+csq_explanation = """**Shrink & Combine**
 - **Shrink:** Recurse on `node.left` and `node.right` using the same function; each call returns `(count, is_unival)`.
 - **Black box:** Trust those child results.
 - **Combine:** Current subtree is unival iff both children are unival AND any existing child's root value equals `node.val`.
@@ -1099,19 +1094,20 @@ Quick primer before you code:
 csq_name = "enemy_lineup_code_fill_v1" 
 csq_interface = "codemirror" 
 
-csq_initial = r"""def enemy_free_lineup(n, badPairs):
+csq_initial = r"""
+def enemy_free_lineup(n, badPairs):
     # Precompute forbidden neighbors for O(1) adjacency checks
     forbidden = [set() for _ in range(n)]
     for a, b in badPairs:
-    forbidden[a].add(b)
-    forbidden[b].add(a) # symmetric
+        forbidden[a].add(b)
+        forbidden[b].add(a)  # symmetric
 
     lineup = []        # partial permutation we are building (left -> right)
     used = set()       # people already placed in lineup
 
     def extend_lineup():
         # TODO-1: Success when lineup is complete
-        if ______________________________:
+        if ______________________________:              
             return True
 
         last = lineup[-1] if lineup else None
@@ -1119,24 +1115,24 @@ csq_initial = r"""def enemy_free_lineup(n, badPairs):
         # Try each unused person as the next slot (valid shrinks only)
         for p in range(n):
             # skip if already used
-            if ______________________________:
+            if ______________________________:          
                 continue
             # skip if adjacency would be illegal with the last placed person
-            if last is not None and ______________________________:
+            if last is not None and ______________________________: 
                 continue
 
             # CHOOSE (shrink by 1)
-            ______________________________      # e.g., lineup.append(p)
-            ______________________________      # e.g., used.add(p)
+            ______________________________             
+            ______________________________             
 
             # BLACK BOX: solve the rest
-            if ______________________________:  # e.g., extend_lineup()
+            if ______________________________:         
                 # COMBINE: success bubbles up; 'lineup' now holds a full solution
                 return True
 
             # BACKTRACK (undo exactly this choice)
-            ______________________________      # e.g., used.remove(p)
-            ______________________________      # e.g., lineup.pop()
+            ______________________________             
+            ______________________________             
 
         # No candidate fit at this depth -> dead branch
         return False
@@ -1144,74 +1140,63 @@ csq_initial = r"""def enemy_free_lineup(n, badPairs):
     # Return the constructed lineup if successful; otherwise None
     return lineup if extend_lineup() else None
 
-
 """
 
-csq_soln = r"""def enemy_free_lineup(n, badPairs):
+csq_soln = r"""
+def enemy_free_lineup(n, badPairs):
+    # Precompute forbidden neighbors for O(1) adjacency checks
     forbidden = [set() for _ in range(n)]
     for a, b in badPairs:
         forbidden[a].add(b)
-        forbidden[b].add(a)
+        forbidden[b].add(a)  # symmetric
 
-    lineup = []
-    used = set()
+    lineup = []        # partial permutation we are building (left -> right)
+    used = set()       # people already placed in lineup
 
     def extend_lineup():
+        # Success when lineup is complete
         if len(lineup) == n:
             return True
 
         last = lineup[-1] if lineup else None
 
+        # Try each unused person as the next slot (valid shrinks only)
         for p in range(n):
             if p in used:
                 continue
             if last is not None and p in forbidden[last]:
                 continue
 
+            # CHOOSE
             lineup.append(p)
             used.add(p)
 
+            # BLACK BOX
             if extend_lineup():
+                # COMBINE
                 return True
 
+            # BACKTRACK
             used.remove(p)
             lineup.pop()
 
         return False
 
+    # Return the constructed lineup if successful; otherwise None
     return lineup if extend_lineup() else None
-
 
 """
 
 csq_tests = [
-# Tiny validator + cases; sets ans=True if all pass.
-{'code': 'def valid_lineup(n, badPairs, lineup):\n'
-' if lineup is None: return False\n'
-' if len(lineup) != n: return False\n'
-' if sorted(lineup) != list(range(n)): return False\n'
-' bad=set()\n'
-' for a,b in badPairs:\n'
-' bad.add((a,b)); bad.add((b,a))\n'
-' for i in range(n-1):\n'
-' if (lineup[i], lineup[i+1]) in bad:\n'
-' return False\n'
-' return True\n'
-'cases=[\n'
-' (6, [[0,2],[1,4],[2,3],[3,5]], True),\n'
-' (4, [], True),\n'
-' (3, [[0,1],[1,2],[0,2]], False),\n'
-' (2, [[0,1]], False),\n'
-' (5, [[0,1],[1,2]], True),\n'
-' (1, [], True),\n'
-' (4, [[1,2]], True),\n'
-']\n'
-'ok=True\n'
-'for n,bp,expect in cases:\n'
-' L = enemy_free_lineup(n,bp)\n'
-' ok = ok and (valid_lineup(n,bp,L) == expect)\n'
-'ans = ok'}
+    {'code': 'ans = enemy_free_lineup(6, [[0,2],[1,4],[2,3],[3,5]])'},
+    {'code': 'ans = enemy_free_lineup(4, [])'},
+    {'code': 'ans = enemy_free_lineup(3, [[0,1],[1,2],[0,2]])'},
+    {'code': 'ans = enemy_free_lineup(2, [[0,1]])'},
+    {'code': 'ans = enemy_free_lineup(5, [[0,1],[1,2]])'},
+    {'code': 'ans = enemy_free_lineup(1, [])'},
+    {'code': 'ans = enemy_free_lineup(4, [[1,2]])'},
 ]
+
 
 csq_explanation = """What you’re wiring up
 
@@ -1666,81 +1651,10 @@ def expand(parts):
 
 </question>
 
----
-
-### Problem 6 – Place K Bishops (No Attacks)
-
-On an `N×N` board, place exactly `K` bishops so that none **attack** each other.
-
-- **Bishop attack:** same diagonal (any distance).
-- **Diagonal IDs:** `d1 = r + c`, `d2 = r - c` (integers).
-- Coordinates are **0‑indexed**. Return all placements as lists of `(r,c)`.
-
-**Example:** For `N=3, K=2`, valid placements include `[(0,0),(1,2)]`, `[(0,2),(1,0)]`, etc.
-
-<question multiplechoice>
-csq_name = 'p7_bishops_type'
-csq_renderer = 'radio'
-csq_prompt = 'Which recursion type fits best for placing K bishops?'
-csq_options = [
-    'Backtracking (BT)',
-    'Shrink & Combine (S&C)',
-]
-csq_soln_mode = 'index'
-csq_soln = 0
-csq_explanation = """We **assign** squares under diagonal constraints, **prune** invalid partial boards, and **undo**—that’s **Backtracking**."""
-</question>
-<question multiplechoice>
-csq_name = 'p7_bishops_step'
-csq_renderer = 'radio'
-csq_prompt = 'Which recursive step correctly enumerates all placements?'
-csq_options = [
-    'Linearize cells; at index `idx` either place (if `r+c` and `r-c` are free—mark them) or skip; prune if not enough cells remain; undo marks on return.',
-    'Force at most one bishop per row; if a row has no safe cell, backtrack; do not consider skipping rows.',
-    'Split squares by color (black/white) and place `K//2` on each color separately, then combine the results.',
-    'Pick extreme-diagonal cells greedily first; if stuck, restart from the next corner.',
-]
-csq_soln_mode = 'index'
-csq_soln = 0
-csq_explanation = """**Why this works.**  
-- **Choice:** at each cell, **place or skip**.  
-- **Constraints:** track occupied diagonals via sets on `r+c` and `r-c`.  
-- **Prune:** if `remaining_cells < remaining_bishops`, stop.  
-- **Undo:** remove marks and the last placement when backing up.
-
-**Reference implementation:**
-
-```python
-def bishops(N, K):
-    out, cur = [], []
-    d1, d2 = set(), set()         # occupied diagonals
-    total = N * N
-    def bt(idx, placed):
-        if placed == K:
-            out.append(cur.copy()); return
-        if idx == total: return
-        if K - placed > total - idx:   # feasibility prune
-            return
-        r, c = divmod(idx, N)
-        # place
-        if (r+c) not in d1 and (r-c) not in d2:
-            d1.add(r+c); d2.add(r-c); cur.append((r, c))
-            bt(idx+1, placed+1)
-            cur.pop(); d1.remove(r+c); d2.remove(r-c)
-        # skip
-        bt(idx+1, placed)
-    bt(0, 0)
-    return out
-
-```
-
-**Why others are off:** One‑per‑row isn’t required; color splits constrain counts incorrectly; greedy corners miss solutions."""
-
-</question>
 
 ---
 
-### Problem 7 – Unique Permutations from Counts (No Equal Adjacent)
+### Problem 6 – Unique Permutations from Counts (No Equal Adjacent)
 
 Given a **multiset** of characters as a `dict` of counts (e.g., `{'a':2,'b':1}`), generate **all strings** using all letters such that **no two adjacent** characters are equal.
 
@@ -1801,4 +1715,76 @@ def permute_no_adj(counts):
 
 **Why others are off:** Greedy smallest can dead‑end; “generate then filter” is factorial waste; “visited once” breaks **multiset** semantics."""
 
+</question>
+
+---
+
+### 7) Flatten an Arbitrarily Nested List
+
+A value `x` is either an `int` or a `list` of such values (recursively). Produce a flat list of all integers in **left‑to‑right** order (i.e., the order they would appear when reading the nested list from left to right).
+
+**Examples.**
+
+- `[] → []`
+- `[1,[2,[3,4],5],6] → [1,2,3,4,5,6]`
+- `[[],[1,[]],2] → [1,2]`
+
+**Code setting used in choices.** We’ll implement:
+
+```python
+def flatten(x, out):  # x: int or nested list; out: list[int]
+    ...
+
+```
+
+Call with `out=[]` and collect results in place.
+
+<question multiplechoice>
+csq_name="q7_flatten_framework"
+csq_renderer="radio"
+csq_prompt="Which recursion style fits best?"
+csq_options=["Shrink & Combine","Backtracking"]
+csq_soln_mode="index"
+csq_soln=0
+csq_explanation="Structural recursion over the data’s shape: base case on an int; recursive case on a list; **combine** by extending the output. There are no choices to undo → **Shrink & Combine**."
+</question>
+<question multiplechoice>
+csq_name="q7_flatten_step"
+csq_renderer="radio"
+csq_prompt="Pick the correct step."
+csq_options=[
+"If x is an int → append to out; if x is a list → for each element e in x: recurse on e; no other work needed.",
+"If x is a list → append x itself to out, then recurse once on its first element for depth handling.",
+"Track the current depth and only flatten when depth ≤ 1; deeper lists stay nested and are appended as-is.",
+"Serialize x to a string and split by commas; convert tokens back to ints and append to out."
+]
+csq_soln_mode="index"
+csq_soln=0
+csq_explanation="""**Why this is the right step.**
+- **Base case:** an `int` is already an atom—emit it (`out.append(x)`).
+- **Recursive case:** a `list` contributes the **concatenation** of each child’s flattened result. We achieve that by simply recursing into every element; there’s no extra combine beyond appending emitted ints.
+
+**Reference implementation (in-place collection):**
+
+```python
+def flatten(x, out):
+    if isinstance(x, int):          # base: file-like leaf
+        out.append(x)
+    else:                            # recursive: folder-like node
+        for e in x:
+            flatten(e, out)
+
+# usage
+out = []
+flatten([1,[2,[3,4],5],6], out)  # out == [1,2,3,4,5,6]
+
+```
+
+**Walkthrough.** At the top level, we see a list: recurse into `1` (emit), then `[2,[3,4],5]` (recurse again: emit `2`, recurse into `[3,4]`, emit `3,4`, then `5`), then `6`.
+
+**Why the other options fail.**
+
+- **Append the list then recurse only its first child**: leaves nested lists intact—doesn’t flatten siblings.
+- **Flatten only to depth 1**: contradicts “arbitrarily nested” requirement.
+- **String tricks**: break on spaces/brackets/negatives and ignore real list structure."""
 </question>
