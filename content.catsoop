@@ -1,0 +1,1804 @@
+
+## Introduction to Recursion
+
+Welcome to the **Recursive Step Workbook!** This workbook is all about building your intuition and understanding of recursion through lots of hands-on practice.
+
+**Structure.** We’ll explore two common recursion patterns:
+- Shrink & Combine
+- Backtracking
+
+For each pattern, you’ll get a short intuition primer and then jump into focused practice problems. The emphasis is on choosing and implementing the recursive step so you can sharpen that instinct.
+
+We’ll wrap up with mixed exercises where you practice identifying the **right recursive step** across many problems.
+
+This workbook is fairly long—don’t feel pressured to finish it all in one go. Work on the sections you need most, at your own pace.
+
+### Part I: Shrink & Combine Recursion
+### Theory & Key Intuitions
+
+Every recursion problem starts with a **goal statement**:
+
+- “This function should compute ___ for a given input.”
+
+The Shrink & Combine pattern says:
+
+1. **State the goal.** Write down what your function is supposed to do.
+2. **Shrink the input.** Take your current input and split off a smaller version of the same task (shorter list, smaller range, child subtree, etc.).
+3. **Black box call.** Imagine you already had a magical function that achieves the same goal on that smaller input. If you had that answer, how would you finish the original?
+4. **Combine.** Use the magical smaller answer plus the peeled-off piece to solve the bigger problem.
+
+**Surprise:** the magical function is not imaginary — it’s the very function you’re in the middle of writing. That’s why the recursive call works: you assume your own function will deliver the smaller answer correctly, and then you focus only on the combination step.
+
+If this all feels a bit abstract, that’s OK! Recursion only really makes sense once you’ve tried it yourself. Let’s dive into some problems and see the patterns in action.
+
+---
+
+### Problem 1: Decode Ways
+
+Given a numeric string, count how many different ways it can decode into letters using the mapping:
+
+- '1' → 'A', '2' → 'B', '3' → 'C', …, '26' → 'Z'.
+
+`decode_ways("12") = 2` (1 → A, 2 → B) and (12 → L)
+
+`decode_ways("226") = 3`   (2 → B, 2 → B, 6 → F) and (2 → B, 26 → Z) and (22→ V, 6 → F)
+
+`decode_ways("06") = 0` Invalid — can't start with 0, and 06 is not a valid mapping
+
+`decode_ways("27") = 1` (2 → B, 7 → G) and 27 is not valid
+
+
+The first thing we should always do is state our **goal**:
+- `decode_ways(s)` returns the number of valid decodings of s.
+
+Now, lets start by defining the simplest scenarios explicitly:
+
+- **Base Case 1 (Empty String)**:
+    
+    Imagine you have no digits left (`""`). How many ways can you decode an empty string?
+    
+    Surprisingly, the answer is **1**, because there is exactly one "way" to decode nothing—by doing nothing at all. This subtle point is critical:
+    
+    - **Misconception:** We may assume assume 0 ways here because "no decoding" might intuitively feel like no valid solutions. But in counting problems, having no more work to do represents exactly one completed solution.
+    - **Reality:** An empty string represents successfully finishing a valid decoding.
+- **Base Case 2 (String Starts with '0')**:
+    
+    Consider `"06"`. Is there any valid way to decode it? Clearly no, because there's no letter mapped to `'0'`.
+    
+
+Now comes the tricky part—the recursive step. Let's explicitly reason through the string `"226"`:
+
+- **Option 1: Take One Digit First**:
+    - The first digit is `"2"`. Is `"2"` valid? Yes (it maps to `'B'`).
+    - The rest of the string is `"26"`. Now, here's the critical "black-box" moment:
+        - Based on our goal, we can use recursion as a black box -- we trust it to correctly count how many ways `"26"` can decode. (We'll do this explicitly next, but first trust recursion as a powerful helper.)
+- **Option 2: Take Two Digits First**:
+    - The first two digits are `"22"`. Is `"22"` valid? Yes (it maps to `'V'`).
+    - The rest of the string is `"6"`. Again, explicitly trust recursion to decode the simpler substring `"6"`.
+
+Notice the clear structure here:
+
+- **Shrink:** From any non-empty string, peel a legal first token of length 1 (not '0') or length 2 (10–26). The remainder is a strictly shorter string that’s the same kind of task (“how many decodings of what’s left?”). These two first-token choices partition all valid decodings by their first move.
+- **Combine:** Treat the smaller task as a black box: if the remainder decodes in `R` ways, then choosing a valid 1-digit (or 2-digit) first token yields exactly `R` full decodings by prefixing that token. Because the two partitions are disjoint, the total count is simply the sum of the black-box counts.
+
+Let's finish our earlier recursive example `"226"` step by step:
+
+```css
+decode_ways("226"):
+│
+├── 1-digit: "2"→'B', rest="26"
+│   ├── 1-digit: "2"→'B', rest="6"
+│   │   ├── 1-digit: "6"→'F', rest=""
+│   │   │   └── ""→1 way (base)
+│   │   └── 2-digit not possible (only 1 digit left)
+│   │   └── "6"→1 way
+│   ├── 2-digit: "26"→'Z', rest=""
+│   │   └── ""→1 way (base)
+│   └── total ways ("26"): 1 + 1 = 2
+│
+├── 2-digit: "22"→'V', rest="6"
+│   └── "6" (as above) → 1 way
+│
+└── total ways ("226"): 2 ways ("B" combinations) + 1 way ("V" combo) = 3 ways
+```
+
+Okay, makes sense! Let’s translate our thinking directly into code.
+
+```python
+def decode_ways(s):
+    if not s:           # Base case: empty string
+        return 1
+    if s[0] == '0':     # Base case: invalid start '0'
+        return 0
+
+    # Recursive step:
+    ways = decode_ways(s[1:])  # trust recursion after taking 1 digit
+    if len(s) >= 2 and '10' <= s[:2] <= '26':
+        ways += decode_ways(s[2:])  # trust recursion after taking 2 digits
+
+    return ways
+```
+
+Let's recap what we did (Goal → Shrink → Black Box → Combine):
+
+- **Goal:** decode_ways(s) returns the number of valid decodings of s.
+
+- **Shrink:** Choose a legal first slice — 1 digit `(s[0] != '0')` or 2 digits `('10' <= s[:2] <= '26')` — so the rest is `s[1:]` or `s[2:]` (strictly shorter).
+
+- **Black box:** Assume `decode_ways(rest)` correctly counts the decodings of the rest.
+
+- **Combine:** Total ways = (if 1-digit valid) `decode_ways(s[1:])` + (if 2-digit valid) `decode_ways(s[2:])`.
+
+---
+
+### Problem 2: Longest Common Subsequence 
+
+Given two strings `A` and `B`, find the length of their **longest common subsequence**.
+
+- A **subsequence** is formed by deleting some (or no) characters without changing the order of the remaining characters.
+
+**Example:**
+
+```markdown
+A = "ABCBDAB"
+B = "BDCABC"
+
+Longest Common Subsequence is "BCAB" (length 4):
+
+A:  A  [B] [C]  B   D  [A] [B]
+B: [B]  D  [C] [A] [B]  C
+```
+
+
+*(Note: The LCS isn't necessarily unique, but the length is.)*
+
+### Building Your Intuition
+
+### 🚦 Question 0:
+
+State the goal of the function in one sentence.
+
+<question bigbox> 
+csq_name = 'lcs_q0_goal' 
+csq_soln = 'LCS(A,B) returns the length of the longest common subsequence of A and B.' 
+csq_check_function = lambda sub, sol: 1 
+csq_rows = 2 
+csq_cols = 80 
+</question>
+
+Before we jump into recursion, let's consider how subsequences work:
+
+### 🚦 Question 1:
+
+Which of the following must always be true about a subsequence?
+
+<question multiplechoice>
+csq_name = 'lcs_q1_subsequence_property'
+csq_renderer = 'checkbox'
+csq_prompt = "Which of the following must always be true about a subsequence?"
+csq_options = [
+  "Characters must be contiguous.",
+  "Relative order of characters must be preserved.",
+  "It must include the first and last character.",
+  "It must appear as a substring."
+]
+csq_soln = [False, True, False, False]
+csq_explanation = "A subsequence only requires that the relative order of characters is preserved. It does not need to be contiguous, include the first/last character, or be a substring."
+</question>
+
+### 🚦 Question 2 :
+
+If the last characters of `A` and `B` match, how does this simplify the problem?
+
+<question bigbox>
+csq_name = 'lcs_q2_last_chars_match'
+csq_soln = "We can include this matching character in the LCS. Thus, the remaining problem reduces to finding the LCS of the two strings without those last characters (shorter strings)."
+csq_check_function = lambda sub, sol: 1
+csq_rows = 4
+csq_cols = 80
+</question>
+
+
+### 🚦 Question 3:
+
+Suppose the last characters of strings `A` and `B` **do not match**. Let's figure out how we can **shrink** the problem down into simpler subproblems.
+
+**(A)** Consider the two strings:
+A = "ABCX"
+B = "ABDY"
+
+<question multiplechoice>
+csq_name = 'lcs_q3a_end_chars_differ'
+csq_renderer = 'radio'
+csq_prompt = "Can both 'X' and 'Y' simultaneously appear at the end of a common subsequence?"
+csq_options = [
+  "Yes, because they both appear at the end of their respective strings.",
+  "No, because the last characters are different, they can't both end the same subsequence."
+]
+csq_soln_mode = 'index'
+csq_soln = 1
+csq_explanation = "No. Since 'X' ≠ 'Y', they can't both appear at the end of the same subsequence."
+</question>
+
+**(B)** Now, we understand that at least one of `'X'` or `'Y'` can't be part of the final subsequence. We have to explore both possibilities separately.
+
+If we decide the final subsequence **cannot** include `'X'`, how does the problem simplify?
+
+<question multiplechoice>
+csq_name = 'lcs_q3b_exclude_X'
+csq_renderer = 'radio'
+csq_options = [
+  'We now only need to find the LCS of "ABC" (removing "X") and "ABDY".',
+  'We now only need to find the LCS of "ABCX" and "ABD".',
+  'We now only need to find the LCS of "ABC" and "ABD".'
+]
+csq_soln_mode = 'index'
+csq_soln = 0
+csq_explanation = 'If we exclude "X", we simplify to LCS("ABC", "ABDY").'
+</question>
+
+**(C)** Similarly, let's consider the other scenario—if we decide the final subsequence **cannot** include `'Y'`:
+
+How does the problem simplify if we exclude `'Y'` from the subsequence?
+
+<question multiplechoice>
+csq_name = 'lcs_q3c_exclude_Y'
+csq_renderer = 'radio'
+csq_options = [
+  'We now only find the LCS of "ABC" and "ABD".',
+  'We now only find the LCS of "ABCX" and "ABD".',
+  'We now only find the LCS of "ABCX" and "ABDY" (unchanged).'
+]
+csq_soln_mode = 'index'
+csq_soln = 1
+csq_explanation = 'Excluding "Y" gives LCS("ABCX", "ABD").'
+</question>
+
+**(D)** Summarizing from your own answers above:
+
+When the last characters of `A` and `B` differ, how do we ultimately determine the solution to the original LCS problem?
+<question multiplechoice>
+csq_name = 'lcs_q3d_take_max'
+csq_renderer = 'radio'
+csq_options = [
+  "We choose the shorter subsequence.",
+  "We take the sum of both possibilities.",
+  "We take the maximum length obtained from LCS(A[:-1], B) and LCS(A, B[:-1])."
+]
+csq_soln_mode = 'index'
+csq_soln = 2
+csq_explanation = "We must take the maximum of the two subproblems since either path may yield the longer subsequence."
+</question>
+
+When the last characters differ, you identified that the problem breaks down into two simpler subproblems:
+
+- Find LCS excluding the last character of `A`.
+- Find LCS excluding the last character of `B`.
+
+The solution is simply the **maximum length** found from these two subproblems. 
+
+We’ve basically cracked it now. Thanks to our black-box assumption (remember Q0?), our function’s goal says it already knows how to compute LCS on any inputs—including these prefixes—so we can treat those results as given. All that’s left is the combine step: take the maximum of the two answers.
+
+### Summarizing the Recursive Blueprint
+
+We have discovered this framework:
+
+- **Base Case**: If either string is empty, the LCS length is `0`.
+- **Shrink and Combine**:
+    - If last characters match: LCS length = 1 + LCS(`A[:-1]`, `B[:-1]`)
+    - If they don't match: LCS length = max( LCS(`A[:-1]`, `B`), LCS(`A`, `B[:-1]`) )
+
+### Partial Code:
+
+Here's a starting scaffold for you:
+
+<question pythoncode>
+csq_name = 'lcs'
+csq_interface = 'codemirror'
+
+csq_initial="""def lcs(A, B):
+    # Base Case: if either string is empty, the LCS is 0
+    if not A or not B:
+        return 0
+
+    # If the last characters of both strings match
+    if A[-1] == B[-1]:
+        # The matched character is part of the LCS. Add 1 and recurse.
+        return 1 + lcs(A[:-1], B[:-1])
+
+    # If the last characters do not match
+    else:
+        # We need to find the maximum of two possibilities:
+        # 1. The LCS of A (without its last char) and all of B.
+        # 2. The LCS of all of A and B (without its last char).
+        return ____________
+
+"""
+
+csq_soln="""def lcs(A, B):
+    # Base Case: if either string is empty, the LCS is 0
+    if not A or not B:
+        return 0
+
+    # If the last characters of both strings match
+    if A[-1] == B[-1]:
+        # The matched character is part of the LCS. Add 1 and recurse.
+        return 1 + lcs(A[:-1], B[:-1])
+
+    # If the last characters do not match
+    else:
+        # We need to find the maximum of two possibilities:
+        # 1. The LCS of A (without its last char) and all of B.
+        # 2. The LCS of all of A and B (without its last char).
+        return max(
+            lcs(A[:-1], B),  # solve without the last character of A
+            lcs(A, B[:-1])   # solve without the last character of B
+        )
+
+"""
+
+csq_explanation="""
+Base Case: if not A or not B: return 0
+
+The recursion must have a stopping point. If either of the strings is empty, it's impossible to have any common characters, so the longest common subsequence has a length of 0.
+
+Matching Characters: if A[-1] == B[-1]: return 1 + lcs(A[:-1], B[:-1])
+
+If the last characters of both strings are the same, we have found a character that belongs to the LCS.
+
+We can "claim" this character, adding 1 to our total length.
+
+We then solve the smaller subproblem of finding the LCS for the rest of the strings, which are A[:-1] (A without its last character) and B[:-1] (B without its last character).
+
+Non-Matching Characters: else: return max(lcs(A[:-1], B), lcs(A, B[:-1]))
+
+This is the core of the recursive insight. If the last characters A[-1] and B[-1] do not match, they cannot both be part of the LCS. This leaves us with two possibilities for what the optimal (longest) subsequence could be:
+
+The LCS might not involve A[-1]. In this case, we find the LCS of A[:-1] (A without its last character) and the full string B.
+
+The LCS might not involve B[-1]. In this case, we find the LCS of the full string A and B[:-1] (B without its last character).
+
+Since we want the longest possible subsequence, we recursively calculate the result of both possibilities and return the larger one using the max() function.
+"""
+
+csq_tests = [
+{'code':'ans = lcs("AGGTAB", "GXTXAYB")'},          # Expected: 4 ("GTAB")
+{'code':'ans = lcs("ABCDGH", "AEDFHR")'},          # Expected: 3 ("ADH")
+{'code':'ans = lcs("BANANA", "ATANA")'},           # Expected: 4 ("AANA")
+{'code':'ans = lcs("ABC", "XYZ")'},                # Expected: 0
+{'code':'ans = lcs("ABCDEFG", "ACE")'},            # Expected: 3 ("ACE")
+{'code':'ans = lcs("A", "B")'},                    # Expected: 0
+{'code':'ans = lcs("X", "X")'},                    # Expected: 1
+{'code':'ans = lcs("PYTHON", "")'},                # Expected: 0
+{'code':'ans = lcs("", "RECURSION")'},             # Expected: 0
+{'code':'ans = lcs("STONE", "LONGEST")'},          # Expected: 3 ("ONE")
+]
+</question>
+
+---
+
+
+### Problem 3: Longest Increasing Subsequence
+
+Given a list of numbers, find the length of the longest subsequence that is strictly increasing. A subsequence doesn't have to be contiguous, but it must maintain the order of elements.
+
+- **Example:** `[10,9,2,5,3,7,101,18]`
+    
+    Longest increasing subsequence: `[2,3,7,101]` → length = `4`.
+
+
+###  Step 0: Longest Increasing Subsequence Intuition
+
+Let's start out by making sure we understand what a longest incrasing subsequence even is.
+
+### 🚦 Warmup 
+
+**(A)** For a single-element list like [7], the LIS length is:
+
+<question multiplechoice> 
+csq_name = 'lis_q2_len1' 
+csq_renderer = 'radio' 
+csq_options = ['0', '1', 'depends on parity'] 
+csq_soln_mode = 'index' 
+csq_soln = 1 
+csq_explanation = 'Pick 7; the LIS has length 1.' 
+</question>
+
+**(B)** Pick the LIS length for each small list.
+
+<question multiplechoice> 
+csq_name = 'lis_q3a_len2_desc' 
+csq_renderer = 'radio' 
+csq_prompt = '`[3, 1]`' 
+csq_options = ['1', '2'] 
+csq_soln_mode = 'index' 
+csq_soln = 0 
+csq_explanation = 'Not increasing; best is length 1 (either 3 or 1).' 
+</question> 
+
+<question multiplechoice>
+ csq_name = 'lis_q3b_len2_asc' 
+ csq_renderer = 'radio' 
+ csq_prompt = '`[1, 3]`' 
+ csq_options = ['1', '2'] 
+ csq_soln_mode = 'index' 
+ csq_soln = 1 
+ csq_explanation = 'Increasing pair → length 2.' 
+</question>
+
+ **(C)** For `[4, 10, 4, 3]`, the longest increasing subsequence length is:
+
+<question multiplechoice> 
+csq_name = 'lis_q4_len4_mix' 
+csq_renderer = 'radio' 
+csq_options = ['2', '3', '4'] 
+csq_soln_mode = 'index' 
+csq_soln = 0 
+csq_explanation = 'Best is length 2 (e.g., [4,10]); no length-3 chain exists.'
+</question>
+
+
+### 🚦 Question 0
+
+Great! Now that we understand the problem setting, we should always approach a recursive problem by stating the goal:
+
+<question bigbox> 
+csq_name = 'lcs_q0_goalk' 
+csq_soln = 'LIS(A) returns the length of the longest increasing subsequence of A.' 
+csq_check_function = lambda sub, sol: 1 
+csq_rows = 2 
+csq_cols = 80 
+</question>
+
+
+### Step 1: Identifying the Recursive Structure
+
+Let's reason through some larger examples to figure out our **Shrink & Combine** step. This part is tricky so the most important things to keep in mind are
+1) The goal of our function (our black box, ie. what we already get for 'free')
+2) The properties of the LIS
+
+
+### 🚦 Question 1:
+
+Suppose we start with the array `[10,9,2,5,3,7,101,18]`.
+
+- If we choose to include the first number (`10`), what's our new condition for the rest of the subsequence? (Think carefully!)
+- What if we exclude the first number?
+
+<question multiplechoice>
+csq_name = 'lis_first_choice_v1'
+csq_renderer = 'radio'
+csq_prompt = """ """
+
+csq_options = [
+  "Include 10 → must pick numbers > 10; Exclude 10 → still must pick numbers > 10",
+  "Include 10 → must pick numbers > 10; Exclude 10 → no restriction yet",
+  "Include 10 → no restriction; Exclude 10 → must pick numbers > 10",
+  "Include 10 → no restriction; Exclude 10 → no restriction"
+]
+
+csq_soln_mode = 'index'
+csq_soln = 1
+csq_explanation = """- If we **include** 10, the next number must be greater than 10.
+- If we **exclude** 10, there’s no restriction yet; the next number can be anything."""
+</question>
+
+
+
+Let's consider a smaller array `[4,10,4,3,8,9]`:
+
+Given the previous question, we know we have two options:
+- **Option 1 (Include first `4`)**: Next choice must be greater than `4`.
+- **Option 2 (Exclude first `4`)**: Next choice unrestricted yet.
+
+### 🚦 Question 2:
+
+Reason through both scenarios above carefully:
+
+- What's the longest subsequence length if we **include the first `4`**?
+- What's the longest subsequence length if we **exclude the first `4`**?
+
+<question pythonic>
+csq_name = 'lis_q2_include_exclude_v1'
+csq_prompt = """Enter as a tuple of lengths."""
+
+csq_soln = (3, 3)
+csq_check_function = lambda sub, sol: isinstance(sub, (list, tuple)) and len(sub) == 2 and tuple(sub) == tuple(sol)
+csq_explanation = """Intuition:
+- Include first 4 → the next pick must be > 4. From [10,4,3,8,9], valid next picks are 10, 8, 9 (but not 4 or 3). 
+  - Picking 10 is a dead end (nothing after 10 is larger), so that branch gives 4→10 (length 2).
+  - Picking 8 allows then picking 9 (>8): 4→8→9 (length 3), which beats the 10-branch.
+  ⇒ Best when including 4 is length 3.
+
+- Exclude first 4 → no restriction yet; we compute LIS of [10,4,3,8,9].
+  - 10 is again a trap (no larger element after it).
+  - Starting at 4 or 3 lets us take 8 then 9: 4→8→9 or 3→8→9 (length 3).
+  ⇒ Best when excluding 4 is also length 3.
+
+Answer: (3, 3)."""
+</question>
+
+
+We just saw that after peeling the first element (shrink), the LIS of “the rest” actually depends on whether we included that first element. That means our subproblem needs a bit more info than just “the rest of the list.”
+
+### 🚦 Question 3 — What else do we need to remember?
+<question multiplechoice> 
+csq_name = 'lis_q3_need_prev' 
+csq_renderer = 'radio' 
+csq_prompt = 'To make the subproblem well-defined after we peel the first element, what extra piece of information must we keep track of?' 
+csq_options = [ 'The index parity (even/odd)', 'The global maximum value seen anywhere in the list', 'The last chosen value (a threshold the next pick must exceed)', 'The sum of all elements so far' ] 
+csq_soln_mode = 'index' 
+csq_soln = 2 
+csq_explanation = 'Including the first element sets a threshold the next pick must beat. We capture that with the last chosen value (call it prev).' 
+</question>
+
+Great—so our subproblem needs a threshold. Let’s make that explicit in our goal.
+
+### 🚦 Question 4 — Rewrite the goal with prev
+<question bigbox> 
+csq_name = 'lis_q4_goal_with_prev' 
+csq_prompt = 'Write the goal of LIS(A, prev) in one clear sentence.' 
+csq_soln = 'LIS(A, prev) returns the length of the longest strictly increasing subsequence drawn from A such that every chosen element is > prev.' 
+csq_check_function = lambda sub, sol: 1 
+csq_rows = 2 
+csq_cols = 80 
+</question>
+
+Nice. At the very start we haven’t picked anything yet—so prev should mean “no restriction.”
+
+### 🚦 Question 5 — How should we initialize prev?
+<question multiplechoice> 
+csq_name = 'lis_q5_prev_start' 
+csq_renderer = 'radio' 
+csq_options = [ 'Set prev to the first element of A', 'Set prev to a “no restriction” sentinel (conceptually −∞)', 'Set prev to the maximum element of A' ] 
+csq_soln_mode = 'index' 
+csq_soln = 1 
+csq_explanation = 'Before choosing any element, there is no lower bound—so we conceptually start with −∞ (or a sentinel that means “no restriction yet”).'
+</question>
+
+With the goal set, we can now lay out the Shrink & Combine step precisely at position i with current element `x = A[0]`:
+
+- Shrink: move to the suffix `A[1:]` (strictly smaller input).
+
+- Black box: treat `LIS(A[1:], prev)` as solved on that suffix.
+
+- Combine: choose between exclude (keep `prev`) vs include (only if `x > prev`, contributes +1 and updates `prev` to `x`).
+
+### 🚦 Question 6 — How do we combine the two choices?
+<question multiplechoice> 
+csq_name = 'lis_q6_combine_rule_prev' 
+csq_renderer = 'radio' 
+csq_options = [ 'Add both lengths to count all subsequences', 'Take the larger of: exclude → LIS(A[1:], prev) ; include (if x > prev) → 1 + LIS(A[1:], x)', 'Always include the current element to grow the subsequence' ] 
+csq_soln_mode = 'index' 
+csq_soln = 1 
+csq_explanation = 'We want the *longest* one subsequence, not a count of all. So we take max(exclude, include-if-legal).'
+</question>
+
+Let’s lock in the blueprint so it’s second nature: Goal → Shrink → Black box → Combine.
+
+### 🚦 Question 7 — Quick Shrink & Combine recap
+
+<question multiplechoice> 
+csq_name = 'lis_q7_snc_recap' 
+csq_renderer = 'checkbox' 
+csq_options = [ 'Shrink: the remaining input strictly decreases by advancing to A[1:].', 'Include is legal only when current > prev; otherwise only the exclude branch applies.', 'Combine uses max of the two branches (include vs exclude).', 'prev must strictly decrease each step.', 'We must add the two branch lengths to avoid missing options.' ] 
+csq_soln = [True, True, True, False, False] 
+csq_explanation = 'Progress = smaller suffix (advance index). Include requires current > prev. We take max (optimize length), not sum. prev may increase when we include; it doesn’t need to decrease.' 
+</question>
+
+
+**Friendly reminder:** your goal can evolve to make the recursion natural. Starting from “LIS(A)” was fine, but examples revealed we also need the threshold—so we refined it to “LIS(A, prev).” That tweak makes the recursive step straightforward: shrink the list, call the black box on the suffix (with or without updating prev), and combine by taking the max. Ready to code it up next!
+
+
+### Step 2: Translating Reasoning to Code
+
+Now, translate our reasoning into code. We provide the structure, all you have to do is fill in the recursive call:
+
+<question pythoncode>
+csq_name = 'lis_step3_longest_incr_v1'
+csq_interface = 'codemirror'
+csq_prompt = ""
+
+csq_initial = r"""def LIS(nums, prev=float('-inf')):
+    if not nums:
+        return 0
+
+    first, rest = nums[0], nums[1:]
+
+    # "Can we take 'first'? (Is it bigger than 'prev'?)"
+    take_first = 0
+    if first > prev:
+        # Fill here!
+        pass
+
+    # "What if we skip 'first'?"
+    skip_first = 0
+    # Fill here!
+
+    # combine results
+    return max(take_first, skip_first)
+"""
+
+csq_soln = r"""def LIS(nums, prev=float('-inf')):
+    if not nums:
+        return 0
+
+    first, rest = nums[0], nums[1:]
+
+    # "Can we take 'first'? (Is it bigger than 'prev'?)"
+    take_first = 0
+    if first > prev:
+        take_first = 1 + LIS(rest, first)
+
+    # "What if we skip 'first'?"
+    skip_first = LIS(rest, prev)
+
+    # combine results
+    return max(take_first, skip_first)
+"""
+
+# Tests compare student result to the exemplar by setting `ans`
+csq_tests = [
+    {'code': 'ans = LIS([10,9,2,5,3,7,101,18])'},  # 4
+    {'code': 'ans = LIS([4,10,4,3,8,9])'},         # 3
+    {'code': 'ans = LIS([])'},                     # 0
+    {'code': 'ans = LIS([1,2,3])'},                # 3
+    {'code': 'ans = LIS([3,2,1])'},                # 1
+    {'code': 'ans = LIS([0,1,0,3,2,3])'},          # 4
+]
+
+csq_explanation = """Intuitive explanation:
+
+- We carry a guard value `prev` that represents the last element we included in the subsequence.
+- At each step, split the list into `(first, rest)` and consider two First–Rest options:
+
+  1) **Include `first`** (only if `first > prev`):
+     - This enforces the strictly-increasing rule.
+     - If we include it, we earn `1` for this element and recurse on `rest` with an updated guard: `prev = first`.
+     - Contribution: `1 + LIS(rest, first)`.
+
+  2) **Exclude `first`**:
+     - We keep our options open to start later at a better element.
+     - Recurse on `rest` without changing the guard: `prev` stays the same.
+     - Contribution: `LIS(rest, prev)`.
+
+- **Combine** by taking the maximum of these two contributions:
+  `max(take_first, skip_first)` picks the better strategy at this position.
+
+- **Progress & base case**:
+  Each recursive call shrinks the input (`rest = nums[1:]`), so we must eventually hit the base case `not nums`, which returns `0` (no more elements to add).
+
+This mirrors the LIS reasoning:
+- Including enforces “next must be greater than what we last took.”
+- Excluding allows us to try again later.
+- Exploring both branches and taking the max yields the optimal subsequence length.
+"""
+</question>
+
+
+
+---
+
+
+### Problem 4: Count Unival Subtrees
+
+Given a binary tree, count the number of subtrees where all nodes have the same value. Each node is either part of a **unival subtree** (all descendants have same value), or not.
+
+Return the count of unival subtrees.
+
+Examples:
+
+```
+    5
+   / \
+  1   5
+     / \
+    5   5
+```
+There are 4 unival subtrees (3 leaves and the right subtree of root).
+
+```
+1
+ \
+  1
+   \
+    1
+```
+Count = 3 (each node’s subtree is all 1s)
+
+```
+1
+ \
+  1
+   \
+    2
+```
+Count = 1 (only the leaf 2; higher subtrees aren’t unival)
+
+
+Input format:
+```python
+class N:
+    def __init__(self, v, l=None, r=None):
+        self.val = v
+        self.left = l
+        self.right = r
+```
+You’re given the root; traverse via root.left and root.right.
+
+You know the drill by now—Goal → Shrink → Black box → Combine. Let’s walk it in small steps.
+
+### 🚦 Question 1
+<question bigbox> 
+csq_name = 'unival_q1_goal'
+csq_prompt = 'In one sentence, state the goal of count_unival(root).' 
+csq_soln = 'Return the total number of unival (single-value) subtrees in the tree rooted at root.' 
+csq_check_function = lambda sub, sol: 1 
+csq_rows = 2 
+csq_cols = 80 
+</question>
+
+Nice. Now lets consider some properties of this problem.
+
+### 🚦 Question 2
+<question multiplechoice> 
+csq_name = 'unival_q2_bases' 
+csq_renderer = 'checkbox' 
+csq_prompt = 'Select all base-case conventions that make combining at the parent simple.' 
+csq_options = [ 'Treat an empty subtree (None) as unival when checking its parent.', 'An empty subtree contributes 0 to the total count.', 'A leaf subtree is unival and contributes 1 to the count.', 'A leaf subtree is not unival.' ] 
+csq_soln = [True, True, True, False] 
+csq_explanation = 'Thinking of None as (unival, 0) makes leaf nodes trivially unival and keeps the combine rule clean.' 
+</question>
+
+Intuition: If None weren’t “unival,” every leaf would need a special case. This convention keeps the parent’s check tiny.
+
+### 🚦 Question 3
+
+<question multiplechoice> 
+csq_name = 'unival_q3_shrink_and_needs' 
+csq_renderer = 'checkbox' 
+csq_prompt = 'When we split the problem, how do we shrink it, and what do we want back from each child so the parent can decide quickly? Select all that apply.' 
+csq_options = [ 'Recurse on the left and right subtrees (strictly smaller trees of the same kind).', 'From each child, learn whether that subtree is unival.', 'From each child, get how many unival subtrees are already inside it.', 'Also compute the sum of values in each child to test unival.' ] 
+csq_soln = [True, True, True, False] 
+csq_explanation = 'Shrink: left/right. The parent needs two facts per child: (is_unival?) and (count). Value sums aren’t needed.' 
+</question>
+
+Great — our black box per child should return (is_unival_child, child_count).
+
+### 🚦 Question 4 
+
+<question multiplechoice> 
+csq_name = 'unival_q4_combine_facts' 
+csq_renderer = 'checkbox' 
+csq_prompt = 'At the current node, which statements are correct for deciding unival and computing the total? Select all that apply.' 
+csq_options = [ 'If left is unival but right is not, the current node cannot be unival.', 'If both children are unival, the current node is unival only if any existing child’s root value equals current.val.', 'Total count at the current node = left_count + right_count + (1 if the current subtree is unival else 0).', 'Total = max(left_count, right_count) because we want the better side.', 'If both children are unival with matching values, the parent adds exactly one new unival subtree.' ] 
+csq_soln = [True, True, True, False, True] 
+csq_explanation = 'Parent unival requires both children unival + value equality at the child roots. Counts are summed (disjoint), and +1 if the parent forms a new unival bubble.' 
+</question>
+
+Mini-check: If left has 2 and right has 3:
+- Parent not unival → 5 (= 2+3).
+
+- Parent is unival → 6 (= 2+3+1).
+
+
+### Putting It All Together – Recursive Code
+
+Fill in the two blanks (children_clean and the final return) to complete the unival-subtree counter.
+
+<question pythoncode>
+csq_name = 'unival_count_code_single_fn_v1'
+csq_interface = 'codemirror'
+csq_prompt = "Write a single recursive function that returns a tuple (total_unival_count, is_unival_subtree) for the subtree rooted at `node`."
+
+csq_initial = r"""
+def count_unival_subtrees(node):
+    # Base case: empty subtree
+    if node is None:
+        return 0, True
+
+    # Shrink: recurse on left/right (same function, no helper)
+    left_cnt,  left_ok  = count_unival_subtrees(node.left)
+    right_cnt, right_ok = count_unival_subtrees(node.right)
+    total = left_cnt + right_cnt
+
+    # Combine: can this node form a new unival on top?
+    # TODO-1: are both children unival so far?
+    children_clean = ____________________
+
+    # TODO-2: If both children are unival, what else do we need to check and what does this change?
+
+    # TODO-3: What should we return if both children are not unival
+    return __________
+"""
+
+csq_soln = r"""def count_unival_subtrees(node):
+    # Returns (total_unival_count, is_unival_subtree)
+    if node is None:
+        return 0, True
+
+    left_cnt,  left_ok  = count_unival_subtrees(node.left)
+    right_cnt, right_ok = count_unival_subtrees(node.right)
+    total = left_cnt + right_cnt
+
+    children_clean = left_ok and right_ok
+
+    if children_clean:
+        if (node.left  and node.left.val  != node.val) or \
+           (node.right and node.right.val != node.val):
+            return total, False
+        return total + 1, True
+
+    return total, False
+"""
+
+csq_tests = [
+    {'code': 'class N:\n    def __init__(self,v,l=None,r=None): self.val=v; self.left=l; self.right=r\n'
+             't = N(5, N(1), N(5, N(5), N(5)))\n'
+             'res = count_unival_subtrees(t)\n'
+             'ans = res[0] if isinstance(res, tuple) else res'},
+    {'code': 'res = count_unival_subtrees(None)\n'
+             'ans = res[0] if isinstance(res, tuple) else res'},
+    {'code': 'class N:\n    def __init__(self,v,l=None,r=None): self.val=v; self.left=l; self.right=r\n'
+             'res = count_unival_subtrees(N(42))\n'
+             'ans = res[0] if isinstance(res, tuple) else res'},
+    {'code': 'class N:\n    def __init__(self,v,l=None,r=None): self.val=v; self.left=l; self.right=r\n'
+             't = N(5, N(5, N(5), N(5)), N(5, N(5), N(5)))\n'
+             'res = count_unival_subtrees(t)\n'
+             'ans = res[0] if isinstance(res, tuple) else res'},
+    {'code': 'class N:\n    def __init__(self,v,l=None,r=None): self.val=v; self.left=l; self.right=r\n'
+             't = N(1, N(1, N(1), N(1)), N(1, N(0), N(1)))\n'
+             'res = count_unival_subtrees(t)\n'
+             'ans = res[0] if isinstance(res, tuple) else res'},
+    {'code': 'class N:\n    def __init__(self,v,l=None,r=None): self.val=v; self.left=l; self.right=r\n'
+             't = N(7, N(7, N(7, N(7))))\n'
+             'res = count_unival_subtrees(t)\n'
+             'ans = res[0] if isinstance(res, tuple) else res'},
+]
+
+csq_explanation = """**Shrink & Combine (single function)**
+- **Shrink:** Recurse on `node.left` and `node.right` using the same function; each call returns `(count, is_unival)`.
+- **Black box:** Trust those child results.
+- **Combine:** Current subtree is unival iff both children are unival AND any existing child's root value equals `node.val`.
+  - If unival → contribute `+1` and return `(left_cnt + right_cnt + 1, True)`.
+  - Else → return `(left_cnt + right_cnt, False)`.
+- **Base case:** `None` returns `(0, True)` to keep leaves simple.
+"""
+</question>
+
+
+---
+
+## Part 2: Recursive Enumeration / Backtracking
+
+### Theory & Key Intuitions
+
+Backtracking is for problems where you **assign values to variables under constraints** and systematically explore possibilities—pruning any partial assignment that breaks a rule. Think: “pick a variable → try a value → if it still obeys rules, keep going; otherwise, back up and try a different value.”
+
+This is still Shrink & Combine:
+
+- **Shrink:** each step assigns one variable, so unassigned variables strictly decrease.
+
+- **Black box:** assume your function can solve “the rest” of the variables.
+
+- **Combine:** aggregate sub-results with the operator that matches your goal (exists / count / list / best).
+
+### 1) Understand the Problem
+
+Fill these in for the concrete task at hand:
+
+- **Variables:** What needs values?
+
+- **Domains:** Which values can each variable take (may depend on the variable or partial assignment)?
+
+- **Constraints:** What must always be true (fast checks on partial assignments are gold)?
+
+If you’re stuck, sketch a tiny decision tree: each level chooses one variable and tries its values.
+
+
+### 2) Implement the Plan
+
+Pass an extended partial and the remaining variables; let the recursive call return a fresh result.
+
+```python
+def solve(partial, vars_left):
+    if there are no variables left to give values to:
+        SUCCESS!  What to return here?
+
+    if there is a variable that has no values or constraints are violated:
+        FAILURE!  What to return here?
+
+    pick a variable VAR from vars_left
+
+    # initialize the aggregate according to your return type:
+    result = _____________
+
+    for every value VAL that this variable can have:
+        if this VAL does satisfy the constraints with current partial:
+            sub = solve( partial ∪ {VAR=VAL}, vars_left \ {VAR} )
+
+            # Combine sub-result into the aggregate):
+            _____________
+
+    if no value worked (i.e., result is still the identity element):
+        FAILURE! What to return here?
+        _____________
+
+    return result
+```
+
+Shrink & Combine lens:
+- **Shrink:** |vars_left| drops each step.
+
+- **Black box:** solve(...) on the smaller set of variables.
+
+- **Combine:** Given a possible shrink, if the black box on the smaller subproblem succeeds, then we combine to find a solution.
+
+If this feels a bit abstract, that’s okay—let’s jump into problems and make it click.
+
+---
+
+
+### Problem 1: Enemy-Free Line-Up
+
+You have `n` people labeled from `0` to `n-1`. You're given pairs of people who **cannot stand next to each other** (`badPairs`). Your task is to **arrange all `n` people in a straight line** so that no forbidden pair appears next to each other.
+
+Return **any valid arrangement** or `None` if impossible.
+
+```python
+n = 6
+badPairs = [[0, 2], [1, 4], [2, 3], [3, 5]]
+
+# One valid line-up:
+[0, 1, 2, 5, 4, 3]
+```
+
+### 🚦 Question 0
+
+<question multiplechoice>
+csq_name = 'enemy_qA_valid'
+csq_renderer = 'radio'
+csq_prompt = 'For `n=4`, `badPairs=[[0,1],[2,3]]`, which arrangement could be valid?'
+csq_options = [
+  '[0,1,2,3]',
+  '[0,2,1,3]',
+  '[1,0,3,2]'
+]
+csq_soln_mode = 'index'
+csq_soln = 1
+csq_explanation = 'Pairs (0,1) and (2,3) cannot be adjacent. [0,2,1,3] avoids both.'
+</question>
+
+
+Current lineup is `[3, 1]`. Forbidden pairs are symmetric and include: `(1,2)`, `(1,4)`, `(0,3)`. `n=5`.
+
+<question multiplechoice>
+csq_name = 'enemy_q7_candidates'
+csq_renderer = 'checkbox'
+csq_prompt = 'Who may come next?'
+csq_options = [
+  '0',
+  '2',
+  '3',
+  '4'
+]
+csq_soln = [True, False, False, False]
+csq_explanation = 'Last person is 1, so 2 and 4 are forbidden; 3 is already used. Only 0 remains unused and legal.'
+</question>
+
+
+### 🚦 Question 1
+
+<question bigbox>
+csq_name = 'enemy_q1_goal'
+csq_prompt = 'In one sentence, state the goal of enemy_free_lineup(n, badPairs). What should it return when possible, and otherwise?'
+csq_soln = 'Return one permutation of 0..n-1 with no forbidden adjacent pair; if none exists, return None.'
+csq_check_function = lambda sub, sol: 1
+csq_rows = 2
+csq_cols = 90
+</question>
+
+*Intuition:* We’re not counting all line-ups—we just need **one** valid line-up or `None`.
+
+### 🚦 Question 2 — Variables / Domains / Constraints
+
+<question multiplechoice>
+csq_name = 'enemy_q2_vdc'
+csq_renderer = 'checkbox'
+csq_prompt = 'Pick the correct setup for backtracking.'
+csq_options = [
+  'Variable: the next position to fill in the lineup.',
+  'Domain for that position: any person not yet used.',
+  'Constraint: if lineup is non-empty, the chosen person must not be forbidden with the last placed person.',
+  'Constraint: each person may be used at most once.'
+]
+csq_soln = [True, True, True, True]
+csq_explanation = 'We fill positions left→right; candidates are unused people; adjacency must be legal; no duplicates.'
+</question>
+
+### 🚦 Question 3 — Base cases
+
+<question multiplechoice>
+csq_name = 'enemy_q3_bases'
+csq_renderer = 'checkbox'
+csq_prompt = 'Select all correct base-case statements.'
+csq_options = [
+  'SUCCESS when lineup length == n (all positions filled).',
+  'EARLY FAILURE at a level if every unused person would violate adjacency (no candidate fits).',
+  'SUCCESS as soon as we place a legal first person.',
+  'EARLY FAILURE only after we try all permutations.'
+]
+csq_soln = [True, True, False, False]
+csq_explanation = 'Full length means done. If no legal candidate exists now, that branch is dead. We do not need to explore all permutations to declare failure on a branch.'
+</question>
+
+*Intuition:* A strong **early failure** keeps the tree small: if a step has **no legal next choice**, bail out immediately and backtrack.
+
+### 🚦 Question 4
+
+<question multiplechoice>
+csq_name = 'enemy_q4_shrink'
+csq_renderer = 'radio'
+csq_prompt = 'What is the shrink measure each recursive call reduces?'
+csq_options = [
+  'n (the total number of people)',
+  'The number of unused people, i.e., n - len(lineup)',
+  'The number of forbidden pairs'
+]
+csq_soln_mode = 'index'
+csq_soln = 1
+csq_explanation = 'Each call fixes one more position, so unused people decrease by 1.'
+</question>
+
+
+### 🚦 Question 5 
+<question multiplechoice> 
+csq_name = "enemy_q5_accept_rule" 
+csq_renderer = "radio" 
+csq_prompt = "After appending a valid candidate person p and making the recursive call, when should we accept this branch and stop exploring siblings?" 
+csq_options = [ "When the recursive call returns True (the smaller subproblem was solved).", "When p has the fewest forbidden neighbors among all candidates.", "As soon as the lineup becomes non-empty.", "Only after trying every remaining candidate at this level." ] 
+csq_soln_mode = "index" 
+csq_soln = 0 
+csq_explanation = "Shrink: we extend by one person. Black box: recurse on the smaller problem. Combine: if the black box returns True, we immediately accept and bubble success up." 
+</question>
+
+Intuition: Combine is a yes/no handoff—if the smaller problem says “yes,” we’re done; otherwise we discard this choice and try the next valid one.
+
+### 🚦 Question 7
+<question multiplechoice> 
+csq_name = "enemy_q7_backtrack_triggers" 
+csq_renderer = "checkbox" 
+csq_prompt = "At the current recursion level (one more slot to fill), which situations *trigger backtracking*?" 
+csq_options = [ "The recursive call on a valid next person returns False (the smaller subproblem failed).", "Every unused person violates adjacency with the last placed person (no valid candidate at this level).", "A candidate violates adjacency; we detect it *before* appending them.", "We have filled all n slots (len(lineup) == n)." ] 
+csq_soln = [True, True, False, False] 
+csq_explanation = "Backtrack when the **black box fails** (False) or when there is **no valid shrink** (no candidate fits). Violations should be pruned *before* choosing (not backtracked after append). Hitting length n is **success**, not backtrack." 
+</question>
+
+**Intuition:** In Shrink & Combine terms:
+
+- Shrink is “append a valid person.”
+- If no valid shrink exists, or the black box on the smaller subproblem returns False, we backtrack.
+
+### What Did We Learn About the Recursive Step?
+
+- At every recursion step, we choose a valid "next person" to extend our lineup.
+- If placing someone violates a forbidden adjacency, we skip immediately.
+- If a choice leads to a future dead-end, we use **backtracking** to "undo" and explore alternatives.
+
+
+### Putting It All Together – Recursive Code
+
+Quick primer before you code:
+
+- `forbidden`: a list of sets where `forbidden[a]` contains all people who cannot stand next to `a` (built symmetric for O(1) checks).
+- `lineup`: the partial permutation we’re building left→right.
+- `used`: the set of people already placed in `lineup`.
+- `extend_lineup()`: the recursive helper that tries to finish the lineup from the current partial state; returns `True` on success (and `lineup` holds the answer), else `False`.
+
+<question pythoncode> 
+csq_name = "enemy_lineup_code_fill_v1" 
+csq_interface = "codemirror" 
+
+csq_initial = r"""def enemy_free_lineup(n, badPairs):
+    # Precompute forbidden neighbors for O(1) adjacency checks
+    forbidden = [set() for _ in range(n)]
+    for a, b in badPairs:
+    forbidden[a].add(b)
+    forbidden[b].add(a) # symmetric
+
+    lineup = []        # partial permutation we are building (left -> right)
+    used = set()       # people already placed in lineup
+
+    def extend_lineup():
+        # TODO-1: Success when lineup is complete
+        if ______________________________:
+            return True
+
+        last = lineup[-1] if lineup else None
+
+        # Try each unused person as the next slot (valid shrinks only)
+        for p in range(n):
+            # skip if already used
+            if ______________________________:
+                continue
+            # skip if adjacency would be illegal with the last placed person
+            if last is not None and ______________________________:
+                continue
+
+            # CHOOSE (shrink by 1)
+            ______________________________      # e.g., lineup.append(p)
+            ______________________________      # e.g., used.add(p)
+
+            # BLACK BOX: solve the rest
+            if ______________________________:  # e.g., extend_lineup()
+                # COMBINE: success bubbles up; 'lineup' now holds a full solution
+                return True
+
+            # BACKTRACK (undo exactly this choice)
+            ______________________________      # e.g., used.remove(p)
+            ______________________________      # e.g., lineup.pop()
+
+        # No candidate fit at this depth -> dead branch
+        return False
+
+    # Return the constructed lineup if successful; otherwise None
+    return lineup if extend_lineup() else None
+
+
+"""
+
+csq_soln = r"""def enemy_free_lineup(n, badPairs):
+    forbidden = [set() for _ in range(n)]
+    for a, b in badPairs:
+        forbidden[a].add(b)
+        forbidden[b].add(a)
+
+    lineup = []
+    used = set()
+
+    def extend_lineup():
+        if len(lineup) == n:
+            return True
+
+        last = lineup[-1] if lineup else None
+
+        for p in range(n):
+            if p in used:
+                continue
+            if last is not None and p in forbidden[last]:
+                continue
+
+            lineup.append(p)
+            used.add(p)
+
+            if extend_lineup():
+                return True
+
+            used.remove(p)
+            lineup.pop()
+
+        return False
+
+    return lineup if extend_lineup() else None
+
+
+"""
+
+csq_tests = [
+# Tiny validator + cases; sets ans=True if all pass.
+{'code': 'def valid_lineup(n, badPairs, lineup):\n'
+' if lineup is None: return False\n'
+' if len(lineup) != n: return False\n'
+' if sorted(lineup) != list(range(n)): return False\n'
+' bad=set()\n'
+' for a,b in badPairs:\n'
+' bad.add((a,b)); bad.add((b,a))\n'
+' for i in range(n-1):\n'
+' if (lineup[i], lineup[i+1]) in bad:\n'
+' return False\n'
+' return True\n'
+'cases=[\n'
+' (6, [[0,2],[1,4],[2,3],[3,5]], True),\n'
+' (4, [], True),\n'
+' (3, [[0,1],[1,2],[0,2]], False),\n'
+' (2, [[0,1]], False),\n'
+' (5, [[0,1],[1,2]], True),\n'
+' (1, [], True),\n'
+' (4, [[1,2]], True),\n'
+']\n'
+'ok=True\n'
+'for n,bp,expect in cases:\n'
+' L = enemy_free_lineup(n,bp)\n'
+' ok = ok and (valid_lineup(n,bp,L) == expect)\n'
+'ans = ok'}
+]
+
+csq_explanation = """What you’re wiring up
+
+Base case (TODO-1): when len(lineup) == n, we’ve placed everyone legally → return True.
+
+Candidates: loop over p in range(n) and only consider valid shrinks:
+
+p is unused (p not in used)
+
+if there is a last person, p is not forbidden with lineup[-1]
+
+Choose → Recurse → Undo:
+
+CHOOSE: lineup.append(p) and used.add(p) (this is the shrink).
+
+BLACK BOX: call extend_lineup() to solve “the rest.”
+
+COMBINE: if it returns True, bubble success up immediately.
+
+BACKTRACK: otherwise, undo exactly this choice with used.remove(p) and lineup.pop().
+
+Shrink & Combine lens
+
+Shrink: each successful choice fixes one more position → n - len(lineup) strictly decreases.
+
+Black box: extend_lineup() solves the smaller subproblem.
+
+Combine: accept as soon as the black box succeeds; otherwise discard this choice and try the next valid candidate.
+
+This builds one valid arrangement (if it exists) or returns None."""
+</question>
+
+
+---
+
+
+### The “Which-Recursion?” Formula
+
+When you face a new problem, decide between **Shrink & Combine** and **Backtracking** (choice search under constraints). Ask these in order:
+
+| Step | Ask yourself… | If **YES** → Use | What your recursion looks like |
+| --- | --- | --- | --- |
+| 1 | Is the task “assign values under constraints” (choose items/positions so rules hold)? | Backtracking | Make one choice → recurse; prune invalid choices; undo on failure. |
+| 2 | Can I define a strictly smaller same-shaped input and a constant-time way to combine smaller answers? | Shrink & Combine | Recurse on smaller input(s); combine subanswers (sum/max/merge/concat). |
+
+If neither is a clear yes, restate the goal and try a smaller example. Most algorithmic recursion falls into one of these two.
+
+
+### Quick Fit Checks
+
+#### Shrink & Combine (S&C)
+- **Goal shape:** “Compute a value/structure for this input.”
+- **Shrink test:** You can name a **measure that strictly decreases** on every call (length, index, range size, subtree size, remaining amount, etc.).
+- **Combine step:** Constant-time `combine(...)` of subresults (e.g., `sum`, `min/max`, `merge`, `concat`, `boolean or/and`).
+- **Typical domains:** strings/lists/arrays, intervals, trees, numeric ranges.
+
+#### Backtracking (BT)
+- **Goal shape:** “**Find** any/one/best/all assignments that satisfy rules.” *You are exploring a **choice tree**.*
+- **Shrink test:** **Unassigned variables** strictly decrease (or “next position” advances).
+- **Call shape:** For each **valid** choice: choose → recurse; if recursion fails, **undo** and try next.
+- **Combine step:** Accept when black box returns success; otherwise discard. If collecting many: aggregate (count, list, best).
+
+### Fast Elimination Questions
+
+- “Do later steps depend on **which** earlier option I picked?”
+    - **Yes** → likely **Backtracking** (choices constrain future).
+    - **No** (only size/shape matters) → **S&C**.
+- “Can I write a constant-time `combine` of subanswers?”
+    - **Yes** → **S&C**.
+    - **No** (I need to **try choices** and possibly **undo**) → **Backtracking**.
+- “Is there a natural **pruning rule** for illegal partial states?”
+    - **Yes** → smells like **Backtracking**.
+    - **Not needed** → often **S&C**.
+
+---
+
+## Part 4: Choosing the Recursive Step
+
+In this section, you'll apply your understanding of recursion by analyzing and selecting the **best recursive step** for a variety of problems.
+
+---
+
+### Problem 1 – Total Size of a Folder
+
+A filesystem is a nested dictionary: a **file** maps to an `int` (size in KB), a **folder** maps to another dict.
+
+- **Leaf:** a file (`int`).
+- **Internal node:** a folder (`dict[str, int|dict]`).
+- **Empty folder** contributes `0`.
+
+**Example:**
+
+```python
+fs = {
+  "a.txt": 4,
+  "pics": {"p1.jpg": 10, "p2.jpg": 6},
+  "empty": {}
+}
+# total → 20
+
+```
+
+<question multiplechoice>
+csq_name = 'p1_folder_type'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursion type fits best for “total size of a folder”?'
+csq_options = [
+    'Shrink & Combine (S&C)',
+    'Backtracking (BT)',
+]
+csq_soln_mode = 'index'
+csq_soln = 0
+csq_explanation = """We compute a value over a structure of the **same shape** (nested dict). Each call handles one node: for a file, return its size; for a folder, recurse on children and **combine** by summing—classic **Shrink & Combine**."""
+</question>
+<question multiplechoice>
+csq_name = 'p1_folder_step'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursive step correctly sums sizes in a nested folder dict?'
+csq_options = [
+    'If `node` is a dict, return `sum(node.values())`; otherwise return the int.',
+    'Recurse only for non-empty dicts; return `None` for empty folders so the parent ignores them.',
+    'If `node` is an int → return it; if a dict → return `sum(folder_size(v) for v in node.values())`.',
+    'Recurse into one child and multiply its size by the number of children.',
+]
+csq_soln_mode = 'index'
+csq_soln = 2
+csq_explanation = """**Why this works.**  
+- **Base case (file):** just the integer size.  
+- **Recursive case (folder):** the result is the **sum** of child results; this is the constant‑time **combine**.  
+- **Measure that shrinks:** the number of unvisited entries.
+
+**Reference implementation:**
+
+```python
+def folder_size(node):
+    if isinstance(node, int):       # file (leaf)
+        return node
+    total = 0                       # folder (internal)
+    for v in node.values():
+        total += folder_size(v)
+    return total
+
+```
+
+**Walkthrough on the example:**
+
+`folder_size("a.txt") → 4`; `folder_size("pics") → 10 + 6 = 16`; `folder_size("empty") → 0`.
+
+Total = `4 + 16 + 0 = 20`.
+
+**Why others are off:**
+
+- Summing `node.values()` fails when a child is a **folder** (a dict isn’t an int).
+- Returning `None` for empty folders breaks addition.
+- “One child × count” double-counts or misses nested structure."""
+</question>
+
+---
+
+### Problem 2 – Quadtree Compression Leaf Count
+
+An `n×n` binary grid (0/1, `n` power of two) is compressed as a **quadtree**:
+
+- A square is **uniform** if all its cells are equal → it becomes **one leaf**.
+- Otherwise split into 4 equal quadrants and compress each.
+    
+    Return the **number of leaves**.
+    
+
+**Example:**
+
+```
+grid = [
+  [1,1,0,0],
+  [1,1,0,0],
+  [1,0,0,0],
+  [1,0,0,0]
+]
+# leaves → 7  (TL:1 leaf, TR:1 leaf, BL:4 leaves at 1×1, BR:1 leaf)
+
+```
+
+<question multiplechoice>
+csq_name = 'p2_quad_type'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursion type fits best for quadtree leaf counting?'
+csq_options = [
+    'Shrink & Combine (S&C)',
+    'Backtracking (BT)',
+]
+csq_soln_mode = 'index'
+csq_soln = 0
+csq_explanation = """We **divide** the square (same problem shape on smaller regions) and **combine** by summing leaf counts—**S&C**."""
+</question>
+<question multiplechoice>
+csq_name = 'p2_quad_step'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursive step correctly counts leaves?'
+csq_options = [
+    'If the region is uniform → return 1; else split into the 4 quadrants and return the sum of their leaf counts.',
+    'Return 1 when the region contains any 1; otherwise return 0 (don’t split).',
+    'Try both “split” and “don’t split” and keep the option with fewer leaves.',
+    'Count connected components of 1s and return that number.',
+]
+csq_soln_mode = 'index'
+csq_soln = 0
+csq_explanation = """**Why this works.**  
+- **Base:** uniform region → single leaf.  
+- **Recursive:** otherwise split, and **sum** the four results.  
+- **Measure:** side length halves each step.
+
+**Reference implementation:**
+
+```python
+def quad_leaves(grid):
+    n = len(grid)
+    def uniform(r, c, s):
+        v = grid[r][c]
+        for i in range(r, r+s):
+            for j in range(c, c+s):
+                if grid[i][j] != v:
+                    return False
+        return True
+    def go(r, c, s):
+        if s == 1 or uniform(r, c, s):
+            return 1
+        h = s // 2
+        return (go(r, c, h) + go(r, c+h, h) +
+                go(r+h, c, h) + go(r+h, c+h, h))
+    return go(0, 0, n)
+
+```
+
+**Why others are off:** Components of 1s or “don’t split” options don’t match the **quadtree** definition."""
+
+</question>
+
+---
+
+### Problem 3 – Root‑to‑Leaf Paths Equal Target
+
+Given a binary tree and `target`, return **all root‑to‑leaf paths** with sum `target`.
+
+**Definitions.**
+
+- **Root‑to‑leaf path:** values from the root down to a **leaf** (a node with no children).
+- **Path sum:** the sum of values along that path.
+
+**Example:** (target = 22)
+
+```
+      5
+    /   \
+   4     8
+  /     / \
+ 11   13   4
+/  \       / \
+7   2     5   1
+
+Valid: [5,4,11,2], [5,8,4,5]
+
+```
+
+<question multiplechoice>
+csq_name = 'p4_paths_type'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursion type fits best for “find all root-to-leaf paths summing to target”?'
+csq_options = [
+    'Shrink & Combine (S&C)',
+    'Backtracking (BT)',
+]
+csq_soln_mode = 'index'
+csq_soln = 1
+csq_explanation = """We explore a **choice tree** (left/right), maintain partial state (path and running sum), **undo** after exploring—this is **Backtracking**."""
+</question>
+<question multiplechoice>
+csq_name = 'p4_paths_step'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursive step correctly collects all valid paths?'
+csq_options = [
+    'At each node, push its value; if it is a leaf and the sum is target, record a copy; recurse to children; pop on return.',
+    'Recurse to both children; if either works, return immediately (stop), ignoring the other branch.',
+    'Track only the running sum now and reconstruct the actual paths later from sums.',
+    'Subtract node.val from target and record whenever the remainder reaches 0 anywhere (leaf or not).',
+]
+csq_soln_mode = 'index'
+csq_soln = 0
+csq_explanation = """**Key pieces.**  
+- We must return **all** paths (so we do **not** stop at the first).  
+- We maintain a `path` list, **push** before recursing, **pop** after (undo).  
+- The running sum can be kept as an accumulator or by passing the remaining target.
+
+**Reference implementation:**
+
+```python
+def path_sums(root, target):
+    out = []
+    def dfs(node, acc, path):
+        if not node: return
+        acc += node.val
+        path.append(node.val)         # choose
+        if not node.left and not node.right:   # leaf
+            if acc == target:
+                out.append(path.copy())
+        else:
+            dfs(node.left, acc, path)
+            dfs(node.right, acc, path)
+        path.pop()                    # undo
+    dfs(root, 0, [])
+    return out
+
+```
+
+**Why others are off:**
+
+- Early return misses additional valid paths.
+- “Sums now, paths later” loses the exact **choices**.
+- Hitting remainder `0` at non‑leaf nodes is a false positive."""
+</question>
+
+---
+
+### Problem 4 – Is the Binary Tree Height‑Balanced?
+
+A binary tree is **balanced** if for every node, `|height(left) - height(right)| ≤ 1`.
+
+- **Height (edges):** number of **edges** on the longest path down to a leaf; a leaf has height `0`.
+
+**Tiny example:** a single node → balanced (`height=0`).
+
+A chain of 3 nodes → unbalanced at the root (`1` vs `-1` child gives difference `2`).
+
+<question multiplechoice>
+csq_name = 'p5_balanced_type'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursion type fits best for checking height balance?'
+csq_options = [
+    'Shrink & Combine (S&C)',
+    'Backtracking (BT)',
+]
+csq_soln_mode = 'index'
+csq_soln = 0
+csq_explanation = """We compute a property bottom‑up, combining child summaries `(ok, height)` in **constant time**—**S&C**."""
+</question>
+<question multiplechoice>
+csq_name = 'p5_balanced_step'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursive step correctly determines balance?'
+csq_options = [
+    'Return only heights now and check all differences in a final pass.',
+    'Use a global flag for imbalance and do two height passes to confirm.',
+    'From each node, return `(is_balanced, height)`; combine child pairs and check `abs(hL - hR) ≤ 1`.',
+    'Pick one subtree at random to reduce work; if it is balanced, assume the other is too.',
+]
+csq_soln_mode = 'index'
+csq_soln = 2
+csq_explanation = """**Why this works.**  
+- **Base:** an empty subtree is balanced with height `-1` (so a leaf gets height `0`).  
+- **Combine:** children give `(okL,hL)` and `(okR,hR)`; the node is balanced iff both children are balanced and `|hL - hR| ≤ 1`.  
+- **Measure:** subtree size strictly decreases.
+
+**Reference implementation (heights in edges):**
+
+```python
+def is_balanced(root):
+    def go(node):
+        if not node:
+            return True, -1          # empty → height -1
+        okL, hL = go(node.left)
+        okR, hR = go(node.right)
+        ok = okL and okR and abs(hL - hR) <= 1
+        return ok, 1 + max(hL, hR)
+    return go(root)[0]
+
+```
+
+**Why others are off:** They either require extra passes, hide logic in globals, or don’t actually check both sides."""
+
+</question>
+
+---
+
+### Problem 5 – Brace Expansion (Non‑Nested)
+
+A **pattern** is a list of **tokens**; each token is either:
+
+- a **literal** string (e.g., `'id'`), or
+- a list of **alternatives** (e.g., `['-','+']`).
+    
+    Expand to **all strings** by choosing exactly one alternative whenever a list appears.
+    
+
+**Example:**
+
+`parts = ['id', ['-','+'], 'x', ['1','2','3']]`
+
+→ `['id-x1','id-x2','id-x3','id+x1','id+x2','id+x3']`
+
+<question multiplechoice>
+csq_name = 'p6_brace_type'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursion type fits best for expanding `parts` into all strings?'
+csq_options = [
+    'Shrink & Combine (S&C)',
+    'Backtracking (BT)',
+]
+csq_soln_mode = 'index'
+csq_soln = 1
+csq_explanation = """We **choose** one option per position and **undo** as we back up the choice tree—**Backtracking**."""
+</question>
+<question multiplechoice>
+csq_name = 'p6_brace_step'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursive step correctly expands the pattern?'
+csq_options = [
+    'At index `i`: if token is a list, try each option; otherwise append the literal; recurse to `i+1`; pop on return.',
+    'When a token is a list, append only its first option to avoid duplicates; backtrack only at the end.',
+    'Join all tokens into one string and split by commas to extract choices.',
+    'Build with two stacks iteratively; recursion is unnecessary here.',
+]
+csq_soln_mode = 'index'
+csq_soln = 0
+csq_explanation = """**How it unfolds.**  
+- **State:** `(i, current_chars)` where `i` indexes `parts`.  
+- **Choice:** a list token branches over its alternatives; a literal has a single continuation.  
+- **Undo:** we pop after each recursive call.
+
+**Reference implementation:**
+
+```python
+def expand(parts):
+    out = []
+    def bt(i, cur):
+        if i == len(parts):
+            out.append("".join(cur)); return
+        tok = parts[i]
+        if isinstance(tok, list):
+            for opt in tok:
+                cur.append(opt)
+                bt(i+1, cur)
+                cur.pop()
+        else:
+            cur.append(tok)
+            bt(i+1, cur)
+            cur.pop()
+    bt(0, [])
+    return out
+
+```
+
+**Why others are off:** Greedy “first option” loses results; string-splitting is not the structure we have; iterative stacks are fine as an **implementation detail**, but the recursive step above is the canonical BT step."""
+
+</question>
+
+---
+
+### Problem 6 – Place K Bishops (No Attacks)
+
+On an `N×N` board, place exactly `K` bishops so that none **attack** each other.
+
+- **Bishop attack:** same diagonal (any distance).
+- **Diagonal IDs:** `d1 = r + c`, `d2 = r - c` (integers).
+- Coordinates are **0‑indexed**. Return all placements as lists of `(r,c)`.
+
+**Example:** For `N=3, K=2`, valid placements include `[(0,0),(1,2)]`, `[(0,2),(1,0)]`, etc.
+
+<question multiplechoice>
+csq_name = 'p7_bishops_type'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursion type fits best for placing K bishops?'
+csq_options = [
+    'Backtracking (BT)',
+    'Shrink & Combine (S&C)',
+]
+csq_soln_mode = 'index'
+csq_soln = 0
+csq_explanation = """We **assign** squares under diagonal constraints, **prune** invalid partial boards, and **undo**—that’s **Backtracking**."""
+</question>
+<question multiplechoice>
+csq_name = 'p7_bishops_step'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursive step correctly enumerates all placements?'
+csq_options = [
+    'Linearize cells; at index `idx` either place (if `r+c` and `r-c` are free—mark them) or skip; prune if not enough cells remain; undo marks on return.',
+    'Force at most one bishop per row; if a row has no safe cell, backtrack; do not consider skipping rows.',
+    'Split squares by color (black/white) and place `K//2` on each color separately, then combine the results.',
+    'Pick extreme-diagonal cells greedily first; if stuck, restart from the next corner.',
+]
+csq_soln_mode = 'index'
+csq_soln = 0
+csq_explanation = """**Why this works.**  
+- **Choice:** at each cell, **place or skip**.  
+- **Constraints:** track occupied diagonals via sets on `r+c` and `r-c`.  
+- **Prune:** if `remaining_cells < remaining_bishops`, stop.  
+- **Undo:** remove marks and the last placement when backing up.
+
+**Reference implementation:**
+
+```python
+def bishops(N, K):
+    out, cur = [], []
+    d1, d2 = set(), set()         # occupied diagonals
+    total = N * N
+    def bt(idx, placed):
+        if placed == K:
+            out.append(cur.copy()); return
+        if idx == total: return
+        if K - placed > total - idx:   # feasibility prune
+            return
+        r, c = divmod(idx, N)
+        # place
+        if (r+c) not in d1 and (r-c) not in d2:
+            d1.add(r+c); d2.add(r-c); cur.append((r, c))
+            bt(idx+1, placed+1)
+            cur.pop(); d1.remove(r+c); d2.remove(r-c)
+        # skip
+        bt(idx+1, placed)
+    bt(0, 0)
+    return out
+
+```
+
+**Why others are off:** One‑per‑row isn’t required; color splits constrain counts incorrectly; greedy corners miss solutions."""
+
+</question>
+
+---
+
+### Problem 7 – Unique Permutations from Counts (No Equal Adjacent)
+
+Given a **multiset** of characters as a `dict` of counts (e.g., `{'a':2,'b':1}`), generate **all strings** using all letters such that **no two adjacent** characters are equal.
+
+**Example:**
+
+`counts = {'a':2,'b':1}` → valid: `aba`; invalid: `aab`, `baa`.
+
+<question multiplechoice>
+csq_name = 'p9_perm_type'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursion type fits best for enumerating these constrained permutations?'
+csq_options = [
+    'Backtracking (BT)',
+    'Shrink & Combine (S&C)',
+]
+csq_soln_mode = 'index'
+csq_soln = 0
+csq_explanation = """We **choose** a character at each step under constraints (`count>0`, not equal to last), and **undo**—that’s **Backtracking**."""
+</question>
+<question multiplechoice>
+csq_name = 'p9_perm_step'
+csq_renderer = 'radio'
+csq_prompt = 'Which recursive step correctly generates all valid strings?'
+csq_options = [
+    'Always pick the smallest available character different from the last; backtrack only if stuck.',
+    "For each character with `count>0` and `ch != last`, place it, decrement its count, recurse, then restore; when length equals total, record the string.",
+    'Generate all permutations ignoring counts, then filter out adjacent-equal cases at the end.',
+    'Use a visited set so each distinct character is used at most once, repeating the process per count.',
+]
+csq_soln_mode = 'index'
+csq_soln = 1
+csq_explanation = """**Core idea.**  
+- **State:** `(current_string, counts, last_char)`.  
+- **Choice:** any `ch` with remaining `count>0` and `ch != last_char`.  
+- **Undo:** restore the decremented count when backtracking.
+
+**Reference implementation:**
+
+```python
+def permute_no_adj(counts):
+    n = sum(counts.values())
+    out, cur = [], []
+    def bt(last):
+        if len(cur) == n:
+            out.append(''.join(cur)); return
+        for ch in list(counts.keys()):
+            if counts[ch] == 0 or ch == last:
+                continue
+            counts[ch] -= 1
+            cur.append(ch)
+            bt(ch)
+            cur.pop()
+            counts[ch] += 1
+    bt(None)
+    return out
+
+```
+
+**Why others are off:** Greedy smallest can dead‑end; “generate then filter” is factorial waste; “visited once” breaks **multiset** semantics."""
+
+</question>
